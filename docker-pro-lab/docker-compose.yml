@@ -1,0 +1,47 @@
+version: '3.8'
+
+# 1. 서비스 정의 (컨테이너)
+services:
+  # 웹 애플리케이션 서비스 (Web App)
+  web:
+    container_name: my-web-app
+    build: 
+      context: ./app  # app/Dockerfile을 사용하여 이미지 빌드
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"  # 호스트 5000 포트와 컨테이너 5000 포트 연결
+    environment:
+      # DB 컨테이너 이름(mysql-db)을 호스트로 지정 (도커 컴포즈의 내부 DNS 사용)
+      DB_HOST: mysql-db 
+      DB_USER: root
+      DB_PASSWORD: secret
+      DB_NAME: myapp
+    networks:
+      - my-app-network # 정의된 네트워크에 연결
+    volumes:
+      # 개발 모드 활성화를 위한 바인드 마운트
+      - ./app:/app 
+
+  # 데이터베이스 서비스 (MySQL)
+  mysql-db:
+    container_name: mysql-db
+    image: mysql:8.0  # 공식 MySQL 8.0 이미지 사용
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: myapp
+    volumes:
+      # DB 데이터의 영속화를 위한 볼륨 마운트
+      - mysql-data:/var/lib/mysql
+      # DB 초기화를 위한 init.sql 바인드 마운트
+      - ./db_init:/docker-entrypoint-initdb.d 
+    networks:
+      - my-app-network # 정의된 네트워크에 연결
+
+# 2. 네트워크 정의
+networks:
+  my-app-network:
+    driver: bridge # 기본 브릿지 네트워크 사용
+
+# 3. 볼륨 정의
+volumes:
+  mysql-data:  # DB 데이터용 볼륨 이름 정의
